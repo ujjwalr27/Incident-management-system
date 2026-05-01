@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: ims_postgres
+    environment:
+      POSTGRES_DB: ims
+      POSTGRES_USER: ims
+      POSTGRES_PASSWORD: ims_secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ims"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    container_name: ims_mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ims
+      MONGO_INITDB_ROOT_PASSWORD: ims_secret
+      MONGO_INITDB_DATABASE: ims
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ims_redis
+    command: redis-server --requirepass ims_secret
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "ims_secret", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ims_backend
+    environment:
+      DATABASE_URL: postgres://ims:ims_secret@postgres:5432/ims?sslmode=disable
+      MONGO_URI: mongodb://ims:ims_secret@mongo:27017/ims?authSource=admin
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ims_secret
+      JWT_SECRET: super_secret_jwt_key_change_in_prod
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 168h
+      PORT: 8080
+      WORKER_COUNT: 16
+      INGRESS_BUFFER: 50000
+      RATE_LIMIT_RPS: 20000
+      RATE_LIMIT_BURST: 5000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ims_frontend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "3002:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
