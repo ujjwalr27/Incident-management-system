@@ -1,0 +1,83 @@
+{
+  "description": "Cascading failure: RDBMS outage → MCP_HOST cascade → Cache eviction storm",
+  "timeline": [
+    {
+      "t_offset_seconds": 0,
+      "signals": [
+        {
+          "component_id": "RDBMS_PRIMARY",
+          "component_type": "RDBMS",
+          "severity": "P0",
+          "message": "connection refused: max connections exceeded",
+          "tags": { "db": "postgres", "host": "db-primary-01" },
+          "timestamp": "2024-01-15T10:00:00Z"
+        }
+      ],
+      "expected_work_item": { "severity": "P0", "alert_channel": "pagerduty" }
+    },
+    {
+      "t_offset_seconds": 2,
+      "signals": [
+        {
+          "component_id": "MCP_HOST_01",
+          "component_type": "MCP_HOST",
+          "severity": "P1",
+          "message": "upstream timeout waiting for RDBMS",
+          "tags": { "upstream": "RDBMS_PRIMARY" },
+          "timestamp": "2024-01-15T10:00:02Z"
+        },
+        {
+          "component_id": "MCP_HOST_02",
+          "component_type": "MCP_HOST",
+          "severity": "P1",
+          "message": "upstream timeout waiting for RDBMS",
+          "tags": { "upstream": "RDBMS_PRIMARY" },
+          "timestamp": "2024-01-15T10:00:02.5Z"
+        }
+      ],
+      "expected_work_item": { "severity": "P1", "alert_channel": "slack" }
+    },
+    {
+      "t_offset_seconds": 5,
+      "signals": [
+        {
+          "component_id": "CACHE_CLUSTER_01",
+          "component_type": "CACHE",
+          "severity": "P2",
+          "message": "LRU eviction: cache full due to RDBMS backlog",
+          "tags": { "eviction_count": "1500" },
+          "timestamp": "2024-01-15T10:00:05Z"
+        }
+      ],
+      "note": "100+ signals for CACHE_CLUSTER_01 within 10s will be debounced into 1 work item",
+      "expected_work_item": { "severity": "P2", "alert_channel": "email" }
+    },
+    {
+      "t_offset_seconds": 8,
+      "signals": [
+        {
+          "component_id": "ASYNC_QUEUE_01",
+          "component_type": "ASYNC_QUEUE",
+          "severity": "P2",
+          "message": "consumer lag spike: queue depth > 100k",
+          "tags": { "queue_depth": "105432" },
+          "timestamp": "2024-01-15T10:00:08Z"
+        }
+      ]
+    },
+    {
+      "t_offset_seconds": 12,
+      "signals": [
+        {
+          "component_id": "RDBMS_PRIMARY",
+          "component_type": "RDBMS",
+          "severity": "P3",
+          "message": "connections stabilising — recovery in progress",
+          "timestamp": "2024-01-15T10:00:12Z"
+        }
+      ],
+      "note": "Recovery signal — operator should transition incident to RESOLVED then submit RCA"
+    }
+  ],
+  "replay_command": "go run backend/scripts/simulate_outage.go --addr http://localhost:8080"
+}
