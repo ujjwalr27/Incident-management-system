@@ -69,8 +69,8 @@ A mission-critical, high-throughput incident management system built with Go, Re
 ### 1. Clone & start everything
 
 ```bash
-git clone <your-repo-url>
-cd zeotap
+git clone https://github.com/ujjwalr27/Incident-management-system.git
+cd Incident-management-system
 docker compose up --build
 ```
 
@@ -242,5 +242,5 @@ zeotap/
 ## Prompts & Plans
 
 All planning markdown and prompts used to design this system are checked in under:
-- `docs/` — Architecture decision records
-- `.claude/plans/` — Implementation plan used with Claude Code
+- `docs/` — Architecture decision records (ADR-001, ADR-002, ADR-003)
+- `Implementation_plan.md` — Full implementation plan
