@@ -1,0 +1,40 @@
+# Go
+backend/ims
+backend/*.exe
+backend/*.test
+*.out
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (local only)
+postgres_data/
+mongo_data/
+redis_data/
+
+# Logs
+*.log
+
+# Go module cache
+vendor/
+
+# Test coverage
+coverage.out
+coverage.html

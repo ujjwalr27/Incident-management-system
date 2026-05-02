@@ -1,8 +1,5 @@
 # ADR-003: Workflow Engine — State & Strategy Patterns
 
-**Date:** 2026-05-01  
-**Status:** Accepted
-
 ---
 
 ## Context

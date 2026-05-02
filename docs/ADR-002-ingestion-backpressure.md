@@ -1,8 +1,5 @@
 # ADR-002: Ingestion Pipeline & Backpressure Strategy
 
-**Date:** 2026-05-01  
-**Status:** Accepted
-
 ---
 
 ## Context

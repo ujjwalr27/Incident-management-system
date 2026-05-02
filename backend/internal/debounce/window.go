@@ -55,15 +55,17 @@ func (d *Debouncer) Process(componentID string, now time.Time) Result {
 			return Result{WorkItemID: w.WorkItemID, IsNew: true}
 		}
 
-		if age <= windowDuration && w.Count < 100 {
-			// Still within the debounce window — attach to existing work item.
+		if age <= windowDuration {
+			// Still within the 10s debounce window — attach all signals to the
+			// same work item regardless of count (per assignment spec:
+			// "100 signals within 10s → only ONE Work Item created").
 			w.Count++
 			wid := w.WorkItemID
 			w.mu.Unlock()
 			return Result{WorkItemID: wid, IsNew: false}
 		}
 
-		// Window has expired (>10s) OR threshold reached (≥100 signals) — evict and retry.
+		// Window has expired (>10s) — evict and create a new work item.
 		d.windows.Delete(componentID)
 		w.mu.Unlock()
 		// Loop will retry LoadOrStore, creating a new window.

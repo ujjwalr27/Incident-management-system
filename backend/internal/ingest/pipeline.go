@@ -158,6 +158,15 @@ func (p *Pipeline) process(ctx context.Context, sig *models.Signal) {
 		// 3b. Attach to existing work item.
 		if err := p.pg.IncrementSignalCount(ctx, wiID, sig.Timestamp); err != nil {
 			log.Printf("[pipeline] increment signal count error: %v", err)
+		} else {
+			// Keep Redis count in sync after Postgres increment.
+			// Use Background context so this survives beyond the pipeline context.
+			go func() {
+				bgCtx := context.Background()
+				if wi, err := p.pg.GetWorkItem(bgCtx, wiID); err == nil && wi != nil {
+					_ = p.rds.UpsertIncident(bgCtx, wi)
+				}
+			}()
 		}
 		// Publish update event.
 		_ = p.rds.Publish(ctx, &models.SSEEvent{Type: "incident.updated", Payload: map[string]string{"id": result.WorkItemID}})
